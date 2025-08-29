@@ -1,3 +1,27 @@
-node_modules/
+# Dependencies
+**/node_modules
 
-.env .env
+# Env files
+**/.env
+
+# Build output
+**/dist
+**/build
+
+# Logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
