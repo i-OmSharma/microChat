@@ -21,7 +21,7 @@ export const isAuth = async (req: AuthenticatedRequest, res: Response, next: Nex
         }
 
         const token = authHeader.split(" ")[1];
-        const decodedValue = jwt.verify(token, JWT_SECRET) as JwtPayload & {user?: IUser}
+        const decodedValue = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload & {user?: IUser}
 
         //decoded
 
