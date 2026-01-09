@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 252 85% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 252 85% 95%;
+    --secondary-foreground: 252 85% 40%;
+
+    --muted: 240 10% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 252 85% 95%;
+    --accent-foreground: 252 85% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
+    --ring: 252 85% 60%;
+
+    --radius: 0.75rem;
+
+    --surface: 0 0% 100%;
+    --surface-hover: 240 10% 96%;
+
+    --sidebar-background: 252 85% 55%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 252 85% 55%;
+    --sidebar-accent: 252 85% 65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 252 85% 65%;
+    --sidebar-ring: 0 0% 100%;
+
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    @apply bg-primary;
+  }
+
+  .gradient-mesh {
+    @apply bg-transparent;
+  }
+
+  .text-gradient {
+    @apply text-primary;
+  }
+
+  .glass {
+    @apply backdrop-blur-xl bg-card/80 border border-border/50;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  .animate-typing-dot {
+    animation: typing-bounce 1.4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+  }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-8px); }
+  }
+}
+
+@layer components {
+  .btn-hero {
+    @apply px-8 py-4 rounded-xl font-semibold text-lg bg-primary text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105;
+  }
+
+  .btn-hero-outline {
+    @apply px-8 py-4 rounded-xl font-semibold text-lg border-2 border-primary/50 text-foreground hover:bg-primary/10 transition-all duration-300;
+  }
+
+  .card-glass {
+    @apply rounded-2xl backdrop-blur-xl bg-card/80 border border-border/50 shadow-xl;
+  }
+
+  .input-chat {
+    @apply bg-muted border-0 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 transition-all;
+  }
+
+  .message-sent {
+    @apply bg-primary text-primary-foreground rounded-l-2xl rounded-tr-2xl px-4 py-2;
+  }
+
+  .message-received {
+    @apply bg-muted text-foreground rounded-r-2xl rounded-tl-2xl px-4 py-2;
+  }
+
+  .online-indicator {
+    @apply w-3 h-3 rounded-full bg-success absolute -bottom-0.5 -right-0.5 ring-2 ring-card;
+  }
+}
