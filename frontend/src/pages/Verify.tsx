@@ -5,6 +5,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import OTPInput from "@/components/chat/OTPInput";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Verify = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,7 +14,14 @@ const Verify = () => {
   const [canResend, setCanResend] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email || "your email";
+  const { verify, login } = useAuth();
+  const email = location.state?.email;
+
+  useEffect(() => {
+    if (!email) {
+      navigate("/");
+    }
+  }, [email, navigate]);
 
   useEffect(() => {
     if (countdown > 0 && !canResend) {
@@ -25,6 +33,7 @@ const Verify = () => {
   }, [countdown, canResend]);
 
   const maskEmail = (email: string) => {
+    if (!email) return "";
     const [username, domain] = email.split("@");
     if (!domain) return email;
     const maskedUsername = username.slice(0, 2) + "***";
@@ -35,11 +44,9 @@ const Verify = () => {
     setIsLoading(true);
     setError(false);
 
-    // Simulate API verification
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const result = await verify(email, otp);
 
-    // For demo, accept "123456" as valid OTP
-    if (otp === "123456") {
+    if (result.success) {
       toast({
         title: "Success!",
         description: "You've been signed in successfully.",
@@ -50,7 +57,7 @@ const Verify = () => {
       setIsLoading(false);
       toast({
         title: "Invalid OTP",
-        description: "Please enter the correct verification code.",
+        description: result.message || "Please enter the correct verification code.",
         variant: "destructive",
       });
     }
@@ -59,15 +66,26 @@ const Verify = () => {
   const handleResend = async () => {
     setCanResend(false);
     setCountdown(60);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "OTP Resent!",
-      description: "Check your email for the new verification code.",
-    });
+
+    const result = await login(email);
+
+    if (result.success) {
+      toast({
+        title: "OTP Resent!",
+        description: "Check your email for the new verification code.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.message || "Failed to resend OTP.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (!email) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -124,54 +142,54 @@ const Verify = () => {
             to="/"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Link>
 
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-6">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-white" />
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center mb-6">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-white" />
+              </div>
             </div>
+            <h1 className="text-2xl font-bold mb-2">Verify your email</h1>
+            <p className="text-muted-foreground">
+              We sent a code to{" "}
+              <span className="text-foreground font-medium">{maskEmail(email)}</span>
+            </p>
           </div>
-          <h1 className="text-2xl font-bold mb-2">Verify your email</h1>
-          <p className="text-muted-foreground">
-            We sent a code to{" "}
-            <span className="text-foreground font-medium">{maskEmail(email)}</span>
-          </p>
-        </div>
 
-        <div className="mb-8">
-          <OTPInput onComplete={handleComplete} error={error} />
-        </div>
-
-        {isLoading && (
-          <div className="flex justify-center mb-6">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <div className="mb-8">
+            <OTPInput onComplete={handleComplete} error={error} />
           </div>
-        )}
 
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-2">
-            Didn't receive the code?
-          </p>
-          {canResend ? (
-            <Button
-              variant="link"
-              onClick={handleResend}
-              className="text-primary p-0 h-auto font-medium"
-            >
-              Resend OTP
-            </Button>
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              Resend in <span className="text-foreground font-medium">{countdown}s</span>
-            </span>
+          {isLoading && (
+            <div className="flex justify-center mb-6">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
           )}
-        </div>
+
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              Didn't receive the code?
+            </p>
+            {canResend ? (
+              <Button
+                variant="link"
+                onClick={handleResend}
+                className="text-primary p-0 h-auto font-medium"
+              >
+                Resend OTP
+              </Button>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                Resend in <span className="text-foreground font-medium">{countdown}s</span>
+              </span>
+            )}
+          </div>
 
           <p className="text-center text-xs text-muted-foreground mt-8">
-            For demo purposes, use OTP: <span className="font-mono text-primary">123456</span>
+            Check your email (or spam folder) for the OTP code.
           </p>
         </motion.div>
       </div>
