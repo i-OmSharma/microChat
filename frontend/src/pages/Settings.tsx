@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Camera,
   Check,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,9 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { userApi } from "@/lib/api";
+import { UserAvatar } from "@/components/UserAvatar";
 
 const tabs = [
   { id: "profile", label: "Profile", icon: User },
@@ -34,12 +38,18 @@ const accentColors = [
 ];
 
 const Settings = () => {
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    bio: "Product Designer at ChatFlow",
+    name: "",
+    email: "",
+    bio: "",
+    avatar: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [notifications, setNotifications] = useState({
     messages: true,
     mentions: true,
@@ -53,11 +63,130 @@ const Settings = () => {
   });
   const [selectedColor, setSelectedColor] = useState(accentColors[0]);
 
-  const handleSaveProfile = () => {
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been saved successfully.",
-    });
+  // Load user data on mount
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        bio: user.bio || "",
+        avatar: user.avatar || "",
+      });
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!profile.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await userApi.updateProfile({
+        name: profile.name,
+        bio: profile.bio,
+      });
+
+      // Update local storage and auth context
+      const { user: updatedUser, accessToken, refreshToken } = response.data;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      updateUser({
+        ...updatedUser,
+        id: updatedUser.id,
+      });
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "Please select an image file (JPG, PNG, or GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Image size must be less than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Upload to server
+      const response = await userApi.uploadAvatar(base64);
+
+      // Update local storage and auth context
+      const { user: updatedUser, accessToken, refreshToken } = response.data;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      updateUser({
+        ...updatedUser,
+        id: updatedUser.id,
+      });
+
+      setProfile((prev) => ({ ...prev, avatar: updatedUser.avatar || "" }));
+
+      toast({
+        title: "Avatar Updated",
+        description: "Your profile photo has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to upload avatar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload avatar. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   return (
@@ -118,17 +247,38 @@ const Settings = () => {
 
                 <div className="flex items-center gap-6">
                   <div className="relative">
-                    <img
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"
-                      alt="Profile"
-                      className="w-20 h-20 rounded-full object-cover"
+                    <UserAvatar
+                      name={profile.name || "User"}
+                      avatar={profile.avatar}
+                      size="xl"
                     />
-                    <button className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-white shadow-lg">
-                      <Camera className="w-4 h-4" />
+                    <button
+                      onClick={handleAvatarClick}
+                      disabled={isUploading}
+                      className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
                     </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
                   </div>
                   <div>
-                    <Button variant="outline">Upload Photo</Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleAvatarClick}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? "Uploading..." : "Upload Photo"}
+                    </Button>
                     <p className="text-xs text-muted-foreground mt-2">
                       JPG, PNG or GIF. Max 2MB.
                     </p>
@@ -143,6 +293,7 @@ const Settings = () => {
                       value={profile.name}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                       className="bg-muted border-border"
+                      placeholder="Enter your name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -154,6 +305,9 @@ const Settings = () => {
                       disabled
                       className="bg-muted border-border opacity-50"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Email cannot be changed
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bio">Bio</Label>
@@ -162,12 +316,28 @@ const Settings = () => {
                       value={profile.bio}
                       onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                       className="bg-muted border-border"
+                      placeholder="Tell us about yourself"
+                      maxLength={200}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {profile.bio.length}/200 characters
+                    </p>
                   </div>
                 </div>
 
-                <Button onClick={handleSaveProfile} className="bg-primary border-0 text-white hover:bg-primary/90">
-                  Save Changes
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={isLoading}
+                  className="bg-primary border-0 text-white hover:bg-primary/90"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </Button>
               </div>
             )}
@@ -244,7 +414,7 @@ const Settings = () => {
                 <div>
                   <h2 className="text-xl font-semibold mb-1">Appearance</h2>
                   <p className="text-sm text-muted-foreground">
-                    Customize how ChatFlow looks
+                    Customize how MicroChat looks
                   </p>
                 </div>
                 <Separator />
