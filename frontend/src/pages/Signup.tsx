@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MessageCircle, Mail, ArrowRight, Loader2 } from "lucide-react";
+import { MessageCircle, Mail, User, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,24 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const Login = () => {
+const Signup = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, googleAuth } = useAuth();
+  const { signup, googleAuth } = useAuth();
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!name.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!email || !email.includes("@")) {
       toast({
@@ -28,7 +38,7 @@ const Login = () => {
 
     setIsLoading(true);
 
-    const result = await login(email);
+    const result = await signup(email, name);
 
     setIsLoading(false);
 
@@ -37,11 +47,11 @@ const Login = () => {
         title: "OTP Sent!",
         description: "Check your email for the verification code.",
       });
-      navigate("/verify", { state: { email } });
+      navigate("/verify", { state: { email, name } });
     } else {
       toast({
         title: "Error",
-        description: result.message || "Failed to send OTP. Please try again.",
+        description: result.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     }
@@ -64,13 +74,13 @@ const Login = () => {
     if (result.success) {
       toast({
         title: "Success!",
-        description: "Signed in with Google successfully.",
+        description: "Signed up with Google successfully.",
       });
       navigate("/chat");
     } else {
       toast({
         title: "Error",
-        description: result.message || "Google sign-in failed. Please try again.",
+        description: result.message || "Google sign-up failed. Please try again.",
         variant: "destructive",
       });
     }
@@ -79,7 +89,7 @@ const Login = () => {
   const handleGoogleError = () => {
     toast({
       title: "Error",
-      description: "Google sign-in was cancelled or failed.",
+      description: "Google sign-up was cancelled or failed.",
       variant: "destructive",
     });
   };
@@ -119,15 +129,15 @@ const Login = () => {
             <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-8">
               <MessageCircle className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-bold mb-4">MicroChat</h1>
+            <h1 className="text-4xl font-bold mb-4">ChatFlow</h1>
             <p className="text-lg text-white/80 max-w-md">
-              Connect with your team, share ideas, and collaborate in real-time.
+              Join ChatFlow and start connecting with your team today.
             </p>
           </motion.div>
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
+      {/* Right Side - Signup Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -140,15 +150,31 @@ const Login = () => {
             <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">MicroChat</h2>
+            <h2 className="text-2xl font-bold text-foreground">ChatFlow</h2>
           </div>
 
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back</h1>
-            <p className="text-muted-foreground">Sign in to continue to MicroChat</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Create account</h1>
+            <p className="text-muted-foreground">Sign up to get started with ChatFlow</p>
           </div>
 
-          <form onSubmit={handleSendOTP} className="space-y-5">
+          <form onSubmit={handleSignup} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="pl-12 h-14 bg-muted/50 border-border rounded-xl focus:border-primary focus:ring-primary"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Email Address
@@ -174,7 +200,7 @@ const Login = () => {
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  Send OTP
+                  Create Account
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </>
               )}
@@ -198,15 +224,15 @@ const Login = () => {
               theme="outline"
               size="large"
               width="400"
-              text="continue_with"
+              text="signup_with"
               shape="rectangular"
             />
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-8">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-primary hover:underline font-medium">
-              Sign up
+            Already have an account?{" "}
+            <Link to="/" className="text-primary hover:underline font-medium">
+              Sign in
             </Link>
           </p>
         </motion.div>
@@ -215,4 +241,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
